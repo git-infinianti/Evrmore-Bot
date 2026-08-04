@@ -1,6 +1,6 @@
 # Evrmore Bot
 
-A production-ready Discord bot for the [Evrmore](https://evrmore.com) blockchain. It runs a custodial wallet inside your Discord server, letting members deposit, withdraw, tip, trade, and mint NFTs with $EVR and Evrmore assets — all through slash commands.
+A Discord bot for the [Evrmore](https://evrmore.com) blockchain. It runs a custodial wallet inside your Discord server, letting members deposit, withdraw, tip, trade, and mint NFTs with $EVR and Evrmore assets — all through slash commands.
 
 ---
 
