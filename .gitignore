@@ -1,0 +1,24 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local data and logs
+configuration.json
+._configuration.json
+*.log
+*.sqlite3
+*.db
+
+# Notebook files
+.ipynb
+.ipynb_checkpoints/
+
+# macOS/editor noise
+.DS_Store
+.vscode/
