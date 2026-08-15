@@ -1,3 +1,0 @@
-Nothing should be ignored in this case, as the only change is adding a markdown file (RPC_METHODS_CHEATSHEET.md), which is a source/config file and not a build artifact, dependency, or temporary file.
-
-Therefore, the output is empty.
