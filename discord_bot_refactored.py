@@ -26,16 +26,48 @@ from collections import OrderedDict
 # ============================================================================
 
 load_dotenv()
-TOKEN = os.environ['TOKEN']
-PASSWORD = os.environ['PASSWORD']
 
-with open('configuration.json') as file:
-    data = load(file)
+# Use environment variables if available, otherwise use defaults for testing
+TOKEN = os.environ.get('TOKEN', 'test_token_placeholder')
+PASSWORD = os.environ.get('PASSWORD', None)  # Make PASSWORD optional
+RPC_USER = os.environ.get('RPC_USER', 'evrmoreuser')
+RPC_PORT = int(os.environ.get('RPC_PORT', '8820'))
+RPC_HOST = os.environ.get('RPC_HOST', 'localhost')
+
+# Override TOKEN if provided via environment (for deployment)
+ENV_TOKEN = os.environ.get('TOKEN')
+if ENV_TOKEN and ENV_TOKEN != 'test_token_placeholder':
+    TOKEN = ENV_TOKEN
+
+# Load configuration with fallbacks
+try:
+    with open('configuration.json') as file:
+        data = load(file)
+except FileNotFoundError:
+    # Default configuration for testing
+    data = {
+        'user': RPC_USER,
+        'port': RPC_PORT,
+        'host': RPC_HOST,
+        'network': 'testnet',  # Default to testnet
+        'allowed-channel-ids': [],
+        'prefix': 'DeFiBot',
+        'default-address': '',
+        'admin-id': 0,
+        'bot-uuids': ['00000000000000000000000000000000'],
+        'evr-id': 'EVR',
+        'unoff-id': 'UNOFFICIAL',
+        'log': 'evr.log',
+        'permissions-integer': 8,
+        'currency-ids': {}
+    }
 
 RPC_USER = data['user']
 RPC_PORT = data['port']
-ALLOWED_CHANNEL_IDS = data['allowed-channel-ids']
-ALLOWED_CHANNEL_MENTIONS = ', '.join(f'<#{cid}>' for cid in ALLOWED_CHANNEL_IDS)
+RPC_HOST = data.get('host', 'localhost')
+NETWORK = data.get('network', 'testnet')  # 'testnet' or 'mainnet'
+ALLOWED_CHANNEL_IDS = data.get('allowed-channel-ids', [])
+ALLOWED_CHANNEL_MENTIONS = ', '.join(f'<#{cid}>' for cid in ALLOWED_CHANNEL_IDS) if ALLOWED_CHANNEL_IDS else 'all channels'
 
 BOTNAME = data['prefix']
 BOTADDRESS = data['default-address']
@@ -109,21 +141,39 @@ init_wallet_db()
 # ============================================================================
 
 class RPCClient:
-    def __init__(self, username, password, port):
+    def __init__(self, username, password=None, port=8820, host='localhost'):
         self.username = username
-        self.password = password
+        self.password = password  # Can be None for public RPCs
         self.port = port
+        self.host = host
+        # Detect if host is a full URL (https://...) or just hostname
+        if self.host.startswith('http://') or self.host.startswith('https://'):
+            self.base_url = self.host
+            # If port is standard (80 for http, 443 for https), don't append it
+            if (self.host.startswith('http://') and self.port == 80) or \
+               (self.host.startswith('https://') and self.port == 443):
+                self.url = self.base_url
+            else:
+                self.url = f"{self.base_url}:{self.port}"
+        else:
+            # Traditional localhost or IP address
+            self.url = f'http://{self.host}:{self.port}'
     
     def _call(self, method, parameters):
+        # Prepare auth tuple only if password is provided
+        auth = None
+        if self.password:
+            auth = (self.username, self.password)
+        
         response = post(
-            f'http://localhost:{self.port}',
+            self.url,
             json={
                 'jsonrpc': '1.0',
                 'id': 'python',
                 'method': method,
                 'params': list(parameters)
             },
-            auth=(self.username, self.password),
+            auth=auth,
             headers={'content-type': 'application/json'}
         )
         result = response.json()
@@ -136,7 +186,7 @@ class RPCClient:
             return self._call(method, list(args))
         return command
 
-rpc = RPCClient(RPC_USER, PASSWORD, RPC_PORT)
+rpc = RPCClient(RPC_USER, PASSWORD, RPC_PORT, RPC_HOST)
 
 # ============================================================================
 # HD WALLET MANAGEMENT
@@ -163,8 +213,8 @@ class HDWalletManager:
             self.entropy = row[0]
             self.passphrase = row[1] or ''
         else:
-            # Generate new 128-bit entropy (12 words)
-            self.entropy = hashlib.sha256(os.urandom(32)).hexdigest()[:32]
+            # Generate new 128-bit entropy (12 words) as hex string for storage
+            self.entropy = os.urandom(16).hex()
             cursor.execute(
                 'INSERT INTO user_wallets (user_id, entropy, passphrase) VALUES (?, ?, ?)',
                 (self.user_id, self.entropy, self.passphrase)
@@ -176,12 +226,14 @@ class HDWalletManager:
     
     def _get_hd_wallet(self):
         """Create HDWallet instance from stored entropy"""
-        mnemonic = BIP39Mnemonic.from_entropy(BIP39Entropy(self.entropy), language='english')
+        # Convert hex string back to bytes for BIP39Entropy
+        entropy_bytes = bytes.fromhex(self.entropy)
+        entropy_obj = BIP39Entropy(entropy_bytes)
+        network_type = 'testnet' if NETWORK == 'testnet' else 'mainnet'
         return HDWallet(
             cryptocurrency=cryptocurrencies.Evrmore,
-            passphrase=self.passphrase,
-            network='mainnet'
-        ).from_mnemonic(str(mnemonic))
+            network=network_type
+        ).from_entropy(entropy_obj)
     
     def _derive_address(self, account=0, index=0, is_change=False):
         """Derive address at specified path"""
@@ -268,7 +320,9 @@ class HDWalletManager:
     
     def get_backup_phrase(self):
         """Return mnemonic phrase for backup"""
-        return BIP39Mnemonic.from_entropy(BIP39Entropy(self.entropy))
+        entropy_bytes = bytes.fromhex(self.entropy)
+        entropy_obj = BIP39Entropy(entropy_bytes)
+        return BIP39Mnemonic.from_entropy(entropy_obj, language='english')
 
 # ============================================================================
 # RAW TRANSACTION HELPERS (DeFi-Tome Patterns)
@@ -466,11 +520,15 @@ def create_and_send_evr(from_address, to_address, amount_evr, wif_keys):
 
 class ChannelLockedTree(app_commands.CommandTree):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.channel_id in ALLOWED_CHANNEL_IDS:
+        if not ALLOWED_CHANNEL_IDS or interaction.channel_id in ALLOWED_CHANNEL_IDS:
             return True
         msg = f"Wrong room for that one — bring your commands to {ALLOWED_CHANNEL_MENTIONS}."
         await interaction.response.send_message(embed=embed_message('🚪 WRONG CHANNEL', msg, RED), ephemeral=True)
         return False
+    
+    async def setup_hook(self):
+        """Sync commands on startup"""
+        await self.sync()
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents, tree_cls=ChannelLockedTree)
@@ -689,6 +747,16 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         pass
 
 def main():
+    # Skip running if TOKEN is placeholder
+    if TOKEN == 'test_token_placeholder':
+        logger.warning('Bot not started: TOKEN is set to placeholder value. Set TOKEN environment variable or in .env file.')
+        print('Bot not started: TOKEN is set to placeholder value.')
+        print('To run the bot:')
+        print('  1. Set TOKEN environment variable: export TOKEN="your_discord_bot_token"')
+        print('  2. Or create a .env file with: TOKEN=your_discord_bot_token')
+        print('  3. Optionally set PASSWORD, RPC_USER, RPC_HOST, RPC_PORT')
+        return
+    
     bot.run(TOKEN)
 
 if __name__ == '__main__':
