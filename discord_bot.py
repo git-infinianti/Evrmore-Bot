@@ -362,11 +362,16 @@ def get_address_utxos(address, asset_name=None):
     
     try:
         utxos = rpc.getaddressutxos(request_obj)
-    except:
-        utxos = rpc.getaddressutxos(addresses=[address])
+    except Exception as e:
+        logger.debug(f'getaddressutxos with object failed: {e}, trying with positional arg')
+        try:
+            utxos = rpc.getaddressutxos([address])
+        except:
+            utxos = []
     
     if not isinstance(utxos, list):
-        raise Exception(f'Unexpected UTXO response: {utxos}')
+        logger.warning(f'Unexpected UTXO response type: {type(utxos)}')
+        return []
     return utxos
 
 def select_evr_inputs(address, required_satoshis, locktime=0):
@@ -499,17 +504,22 @@ def embed_message(name, value, color):
     return discord.Embed(title=name, description=value, color=color)
 
 def get_asset_balances(addresses):
-    """Get asset balances for a list of addresses"""
+    """Get asset balances for a list of addresses using getaddressutxos"""
     balances = {}
     for address in addresses:
         try:
-            asset_balances = rpc.listassetbalancesbyaddress(address)
-            for asset, amount in asset_balances.items():
-                if asset in balances:
-                    balances[asset] += float(amount)
-                else:
-                    balances[asset] = float(amount)
-        except:
+            # Get all UTXOs for the address including assets
+            utxos = get_address_utxos(address)
+            for utxo in utxos:
+                asset_name = utxo.get('assetName')
+                if asset_name:
+                    amount = float(utxo.get('amount', 0))
+                    if asset_name in balances:
+                        balances[asset_name] += amount
+                    else:
+                        balances[asset_name] = amount
+        except Exception as e:
+            logger.debug(f'Error getting asset balance for {address}: {e}')
             continue
     return balances
 
@@ -554,13 +564,16 @@ async def menu_slash(interaction: discord.Interaction):
                 total_balance = Decimal('0')
                 for addr in addresses:
                     utxos = get_address_utxos(addr)
+                    logger.debug(f'Found {len(utxos)} UTXOs for {addr}')
                     for utxo in utxos:
                         if not utxo.get('assetName'):
-                            total_balance += Decimal(str(utxo.get('amount', 0)))
+                            amount = Decimal(str(utxo.get('amount', 0)))
+                            total_balance += amount
+                            logger.debug(f'Added {amount} EVR from UTXO {utxo.get("txid")}')
                 msg = f'{user.mention}, your vault is sitting at **{total_balance} $EVR**. Not bad.'
                 await interaction.response.send_message(embed=embed_message('💰 BALANCE', msg, GREEN), ephemeral=True)
             except Exception as e:
-                logger.error(f'Balance check error: {e}')
+                logger.error(f'Balance check error: {e}', exc_info=True)
                 msg = 'Something glitched in the vault. Try again in a moment!'
                 await interaction.response.send_message(embed=embed_message('⚠️ ERROR', msg, RED), ephemeral=True)
         
@@ -573,6 +586,7 @@ async def menu_slash(interaction: discord.Interaction):
                 return
             
             asset_balances = get_asset_balances(addresses)
+            logger.debug(f'Asset balances found: {asset_balances}')
             if asset_balances and len(asset_balances) > 0:
                 embeds = []
                 for asset, balance in asset_balances.items():
