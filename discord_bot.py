@@ -602,9 +602,13 @@ async def menu_slash(interaction: discord.Interaction):
             
             asset_balances = get_asset_balances(addresses)
             logger.debug(f'Asset balances found: {asset_balances}')
-            if asset_balances and len(asset_balances) > 0:
+            
+            # Filter out EVR from asset balances - only show non-EVR assets
+            non_evr_assets = {asset: balance for asset, balance in asset_balances.items() if asset != 'EVR'}
+            
+            if non_evr_assets and len(non_evr_assets) > 0:
                 embeds = []
-                for asset, balance in asset_balances.items():
+                for asset, balance in non_evr_assets.items():
                     msg = f'`{asset}` — **{balance}**'
                     embeds.append(embed_message('🎒 ASSET VAULT', msg, GREEN))
                 await interaction.response.send_message(embeds=embeds, ephemeral=True)
