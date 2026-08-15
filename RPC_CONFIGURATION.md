@@ -1,25 +1,25 @@
 # Evrmore Bot Configuration Guide
 
-## Public RPC Endpoints
+## Public RPC Endpoints (No Local Node Required)
 
-The bot now supports public RPC API servers provided by the Evrmore community:
+The bot now supports public RPC API servers provided by the Evrmore community. **This is the recommended configuration** as it eliminates the need to run a local Evrmore node:
 
-- **Testnet**: `https://evr-rpc-testnet.evrmorecoin.org` (port 443)
-- **Mainnet**: `https://evr-rpc-mainnet.evrmorecoin.org` (port 443)
+- **Testnet**: `https://testnet-rpc.evrmorecoin.org` (port 443)
+- **Mainnet**: `https://mainnet-rpc.evrmorecoin.org` (port 443)
 
 ## Configuration Options
 
-### Option 1: Using Public RPC (Recommended for Testing)
+### Option 1: Using Public RPC (Recommended - No Local Node Required)
 
 Edit `configuration.json`:
 
 ```json
 {
-    "host": "https://evr-rpc-testnet.evrmorecoin.org",
+    "host": "https://testnet-rpc.evrmorecoin.org",
     "port": 443,
     "network": "testnet",
     "user": "evrmoreuser",
-    "password": "your-rpc-password"
+    "password": ""
 }
 ```
 
@@ -27,15 +27,19 @@ For mainnet:
 
 ```json
 {
-    "host": "https://evr-rpc-mainnet.evrmorecoin.org",
+    "host": "https://mainnet-rpc.evrmorecoin.org",
     "port": 443,
     "network": "mainnet",
     "user": "evrmoreuser",
-    "password": "your-rpc-password"
+    "password": ""
 }
 ```
 
-### Option 2: Using Local Node
+**Note**: Public endpoints may not require authentication (password can be empty).
+
+### Option 2: Using Local Node (Alternative)
+
+If you prefer to run your own Evrmore node, use this configuration:
 
 Edit `configuration.json`:
 
@@ -66,10 +70,10 @@ For testnet with local node:
 You can override configuration using environment variables:
 
 ```bash
-export RPC_HOST="https://evr-rpc-testnet.evrmorecoin.org"
+export RPC_HOST="https://testnet-rpc.evrmorecoin.org"
 export RPC_PORT="443"
 export RPC_USER="evrmoreuser"
-export PASSWORD="your-rpc-password"
+export PASSWORD=""
 ```
 
 ## Network Settings
@@ -85,20 +89,22 @@ The `network` field in `configuration.json` determines address derivation:
 
 | Field | Description | Default |
 |-------|-------------|---------|
-| `host` | RPC server URL or hostname | `localhost` |
-| `port` | RPC server port | `8819` (mainnet), `8766` (testnet) |
+| `host` | RPC server URL or hostname | `https://testnet-rpc.evrmorecoin.org` |
+| `port` | RPC server port | `443` (public RPC), `8819` (mainnet local), `8766` (testnet local) |
 | `network` | Network type | `testnet` |
 | `user` | RPC username | `evrmoreuser` |
-| `password` | RPC password | (required) |
+| `password` | RPC password | (optional for public RPC) |
 | `admin-id` | Your Discord user ID | (required for admin commands) |
 
 ## Getting RPC Credentials
 
 ### For Public RPC
-Contact the Evrmore community to obtain RPC credentials for the public endpoints.
+
+Public RPC endpoints are provided by the Evrmore community and **do not require authentication**. Simply use the public endpoint URLs in your configuration.
 
 ### For Local Node
-In your `evrmore.conf` file:
+
+If running your own node, configure your `evrmore.conf` file:
 
 ```
 rpcuser=your-username
@@ -132,7 +138,7 @@ testnet=1
 To switch from testnet to mainnet:
 
 1. Change `network` to `"mainnet"`
-2. Change `host` to `"https://evr-rpc-mainnet.evrmorecoin.org"` or your mainnet node
+2. Change `host` to `"https://mainnet-rpc.evrmorecoin.org"` or your mainnet node
 3. Change `port` to `443` (public RPC) or `8819` (local)
 4. Restart the bot
 

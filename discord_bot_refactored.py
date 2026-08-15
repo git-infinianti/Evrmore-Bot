@@ -31,8 +31,8 @@ load_dotenv()
 TOKEN = os.environ.get('TOKEN', 'test_token_placeholder')
 PASSWORD = os.environ.get('PASSWORD', None)  # Make PASSWORD optional
 RPC_USER = os.environ.get('RPC_USER', 'evrmoreuser')
-RPC_PORT = int(os.environ.get('RPC_PORT', '8820'))
-RPC_HOST = os.environ.get('RPC_HOST', 'localhost')
+RPC_PORT = int(os.environ.get('RPC_PORT', '443'))
+RPC_HOST = os.environ.get('RPC_HOST', 'https://testnet-rpc.evrmorecoin.org')
 
 # Override TOKEN if provided via environment (for deployment)
 ENV_TOKEN = os.environ.get('TOKEN')
@@ -64,7 +64,7 @@ except FileNotFoundError:
 
 RPC_USER = data['user']
 RPC_PORT = data['port']
-RPC_HOST = data.get('host', 'localhost')
+RPC_HOST = data.get('host', 'https://testnet-rpc.evrmorecoin.org')
 NETWORK = data.get('network', 'testnet')  # 'testnet' or 'mainnet'
 ALLOWED_CHANNEL_IDS = data.get('allowed-channel-ids', [])
 ALLOWED_CHANNEL_MENTIONS = ', '.join(f'<#{cid}>' for cid in ALLOWED_CHANNEL_IDS) if ALLOWED_CHANNEL_IDS else 'all channels'
@@ -141,7 +141,7 @@ init_wallet_db()
 # ============================================================================
 
 class RPCClient:
-    def __init__(self, username, password=None, port=8820, host='localhost'):
+    def __init__(self, username, password=None, port=443, host='https://testnet-rpc.evrmorecoin.org'):
         self.username = username
         self.password = password  # Can be None for public RPCs
         self.port = port

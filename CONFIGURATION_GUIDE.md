@@ -14,10 +14,10 @@ Set environment variables for sensitive credentials:
 
 ```bash
 TOKEN=your_discord_bot_token
-PASSWORD=your_rpc_password
-RPC_USER=your_rpc_username
-RPC_HOST=localhost
-RPC_PORT=8766
+PASSWORD=""
+RPC_USER=evrmoreuser
+RPC_HOST=https://testnet-rpc.evrmorecoin.org
+RPC_PORT=443
 ```
 
 **Note:** If TOKEN is not set, the bot will display startup instructions and exit gracefully.
@@ -29,10 +29,10 @@ Main configuration file with the following structure:
 {
     "default-address": "YOUR_EVR_WALLET_ADDRESS",
     "prefix": "Evrmore Bot",
-    "user": "your-rpc-username",
-    "password": "your-rpc-password",
-    "host": "localhost",
-    "port": 8819,
+    "user": "evrmoreuser",
+    "password": "",
+    "host": "https://testnet-rpc.evrmorecoin.org",
+    "port": 443,
     "network": "testnet",
     "log": "evr.log",
     "tx-fee": 0.01,
@@ -48,7 +48,7 @@ Main configuration file with the following structure:
 
 ### Key Configuration Options
 
-#### Network Setting (NEW)
+#### Network Setting
 - **Default:** `"testnet"`
 - **Options:** `"testnet"` or `"mainnet"`
 - **Description:** Determines which network the HD wallet derives addresses for
@@ -62,35 +62,41 @@ To switch to mainnet:
 "network": "mainnet"
 ```
 
-#### RPC Host (NEW)
-- **Default:** `"localhost"`
-- **Description:** RPC server hostname or IP address
+#### RPC Host (Public Endpoint - Recommended)
+- **Default:** `"https://testnet-rpc.evrmorecoin.org"`
+- **Description:** Public RPC endpoint URL (no local node required)
 
+```json
+"host": "https://testnet-rpc.evrmorecoin.org"
+```
+
+For mainnet:
+```json
+"host": "https://mainnet-rpc.evrmorecoin.org"
+```
+
+For local node (alternative):
 ```json
 "host": "localhost"
 ```
 
-For remote RPC:
-```json
-"host": "192.168.1.100"
-```
-
 #### RPC Port
-- **Testnet Default:** `8766`
-- **Mainnet Default:** `8819`
+- **Public RPC Default:** `443` (HTTPS)
+- **Testnet Local Default:** `8766`
+- **Mainnet Local Default:** `8819`
 - **Description:** RPC server port
 
 ```json
-"port": 8766
+"port": 443
 ```
 
 #### RPC Credentials
 ```json
-"user": "your-rpc-username",
-"password": "your-rpc-password"
+"user": "evrmoreuser",
+"password": ""
 ```
 
-**Security Note:** Password can be stored in `.env` file instead of `configuration.json` for better security.
+**Note:** Public RPC endpoints do not require authentication. Password can be left empty.
 
 ## Running the Bot
 
@@ -187,11 +193,10 @@ This eliminates reliance on node wallet management and provides full control ove
 ## Security Best Practices
 
 1. **Never commit `.env` file** to version control
-2. **Store RPC password** in `.env` rather than `configuration.json`
-3. **Backup `wallet.db`** regularly for disaster recovery
-4. **Use appropriate file permissions** on sensitive files
-5. **Enable RPC whitelisting** on your Evrmore node
-6. **Use HTTPS** for remote RPC connections (requires additional setup)
+2. **Backup `wallet.db`** regularly for disaster recovery
+3. **Use appropriate file permissions** on sensitive files
+4. **Public RPC endpoints** are convenient but verify their trustworthiness
+5. **For production**, consider running your own node for full control and privacy
 
 ## Migration from Old Bot
 

@@ -26,14 +26,15 @@ from collections import OrderedDict
 # ============================================================================
 
 load_dotenv()
-TOKEN = os.environ['TOKEN']
-PASSWORD = os.environ['PASSWORD']
+TOKEN = os.environ.get('TOKEN', '')
+PASSWORD = os.environ.get('PASSWORD', None)  # Make PASSWORD optional
 
 with open('configuration.json') as file:
     data = load(file)
 
 RPC_USER = data['user']
-RPC_PORT = data['port']
+RPC_PORT = data.get('port', 443)
+RPC_HOST = data.get('host', 'https://testnet-rpc.evrmorecoin.org')
 ALLOWED_CHANNEL_IDS = data['allowed-channel-ids']
 ALLOWED_CHANNEL_MENTIONS = ', '.join(f'<#{cid}>' for cid in ALLOWED_CHANNEL_IDS)
 
@@ -109,21 +110,39 @@ init_wallet_db()
 # ============================================================================
 
 class RPCClient:
-    def __init__(self, username, password, port):
+    def __init__(self, username, password=None, port=443, host='https://testnet-rpc.evrmorecoin.org'):
         self.username = username
-        self.password = password
+        self.password = password  # Can be None for public RPCs
         self.port = port
+        self.host = host
+        # Detect if host is a full URL (https://...) or just hostname
+        if self.host.startswith('http://') or self.host.startswith('https://'):
+            self.base_url = self.host
+            # If port is standard (80 for http, 443 for https), don't append it
+            if (self.host.startswith('http://') and self.port == 80) or \
+               (self.host.startswith('https://') and self.port == 443):
+                self.url = self.base_url
+            else:
+                self.url = f"{self.base_url}:{self.port}"
+        else:
+            # Traditional localhost or IP address
+            self.url = f'http://{self.host}:{self.port}'
     
     def _call(self, method, parameters):
+        # Prepare auth tuple only if password is provided
+        auth = None
+        if self.password:
+            auth = (self.username, self.password)
+        
         response = post(
-            f'http://localhost:{self.port}',
+            self.url,
             json={
                 'jsonrpc': '1.0',
                 'id': 'python',
                 'method': method,
                 'params': list(parameters)
             },
-            auth=(self.username, self.password),
+            auth=auth,
             headers={'content-type': 'application/json'}
         )
         result = response.json()
@@ -136,7 +155,7 @@ class RPCClient:
             return self._call(method, list(args))
         return command
 
-rpc = RPCClient(RPC_USER, PASSWORD, RPC_PORT)
+rpc = RPCClient(RPC_USER, PASSWORD, RPC_PORT, RPC_HOST)
 
 # ============================================================================
 # HD WALLET MANAGEMENT

@@ -20,7 +20,7 @@ try:
     
     print(f"✓ Configuration loaded successfully")
     print(f"  - Network: {config.get('network', 'testnet')} (default: testnet)")
-    print(f"  - RPC Host: {config.get('host', 'localhost')}")
+    print(f"  - RPC Host: {config.get('host', 'https://testnet-rpc.evrmorecoin.org')}")
     print(f"  - RPC Port: {config.get('port', 8819)}")
     print(f"  - RPC User: {config.get('user', 'evrmoreuser')}")
     print(f"  - Has Password: {'Yes' if config.get('password') else 'No'}")
