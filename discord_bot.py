@@ -34,8 +34,10 @@ with open('configuration.json') as file:
 
 RPC_USER = data['user']
 RPC_PORT = data['port']
-ALLOWED_CHANNEL_IDS = data['allowed-channel-ids']
-ALLOWED_CHANNEL_MENTIONS = ', '.join(f'<#{cid}>' for cid in ALLOWED_CHANNEL_IDS)
+ALLOWED_CHANNEL_IDS = data.get('allowed-channel-ids', [])
+# Make channel locks optional - only enforce if list is non-empty
+CHANNEL_LOCK_ENABLED = len(ALLOWED_CHANNEL_IDS) > 0
+ALLOWED_CHANNEL_MENTIONS = ', '.join(f'<#{cid}>' for cid in ALLOWED_CHANNEL_IDS) if ALLOWED_CHANNEL_IDS else 'all channels'
 
 BOTNAME = data['prefix']
 BOTADDRESS = data['default-address']
@@ -466,7 +468,8 @@ def create_and_send_evr(from_address, to_address, amount_evr, wif_keys):
 
 class ChannelLockedTree(app_commands.CommandTree):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.channel_id in ALLOWED_CHANNEL_IDS:
+        # Channel lock is optional - only enforce if CHANNEL_LOCK_ENABLED is True
+        if not CHANNEL_LOCK_ENABLED or interaction.channel_id in ALLOWED_CHANNEL_IDS:
             return True
         msg = f"Wrong room for that one — bring your commands to {ALLOWED_CHANNEL_MENTIONS}."
         await interaction.response.send_message(embed=embed_message('🚪 WRONG CHANNEL', msg, RED), ephemeral=True)
