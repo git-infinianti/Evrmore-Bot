@@ -46,6 +46,7 @@ UNOFFID = data['unoff-id']
 LOG_FILE = data['log']
 PERMISSIONS = data['permissions-integer']
 NETWORK = data.get('network', 'mainnet').lower()
+ALLOW_MENTIONS = data.get('allow_mentions', True)  # Configurable mention support
 TXFEE = Decimal('0.01')
 HOUSE = 'House'
 RED = discord.Color.red()
@@ -397,7 +398,13 @@ def select_evr_inputs(address, required_satoshis, locktime=0):
             total += to_satoshis(utxo.get('amount', 0))
     
     if total < required_satoshis:
-        raise Exception(f'Insufficient balance: need {required_satoshis} sats, have {total}')
+        # Get actual balance for better error message
+        try:
+            balance_result = rpc.getaddressbalance({'addresses': [address]})
+            actual_balance = balance_result.get('balance', 0)
+            raise Exception(f'Insufficient balance: need {required_satoshis} sats, have {actual_balance}')
+        except:
+            raise Exception(f'Insufficient balance: need {required_satoshis} sats, have {total}')
     
     return selected, total
 
@@ -602,9 +609,13 @@ async def menu_slash(interaction: discord.Interaction):
             
             asset_balances = get_asset_balances(addresses)
             logger.debug(f'Asset balances found: {asset_balances}')
-            if asset_balances and len(asset_balances) > 0:
+            
+            # Filter out EVR from asset balances - only show non-EVR assets
+            non_evr_assets = {asset: balance for asset, balance in asset_balances.items() if asset != 'EVR'}
+            
+            if non_evr_assets and len(non_evr_assets) > 0:
                 embeds = []
-                for asset, balance in asset_balances.items():
+                for asset, balance in non_evr_assets.items():
                     msg = f'`{asset}` — **{balance}**'
                     embeds.append(embed_message('🎒 ASSET VAULT', msg, GREEN))
                 await interaction.response.send_message(embeds=embeds, ephemeral=True)
@@ -655,11 +666,34 @@ async def backup_slash(interaction: discord.Interaction):
     msg = f'**⚠️ KEEP THIS SECRET ⚠️**\n\nYour backup phrase:\n```\n{mnemonic}\n```\n\nNever share this with anyone!'
     await interaction.response.send_message(embed=embed_message('🔐 WALLET BACKUP', msg, RED), ephemeral=True)
 
-@bot.tree.command(name='send_evr', description='Send EVR using raw transaction workflow')
-@app_commands.describe(address='Destination address', amount='Amount to send')
-async def send_evr_slash(interaction: discord.Interaction, address: str, amount: float):
+@bot.tree.command(name='send', description='Send EVR using raw transaction workflow')
+@app_commands.describe(destination='Destination address or @mention', amount='Amount to send')
+async def send_slash(interaction: discord.Interaction, destination: str, amount: float):
     user = interaction.user
-    if not is_valid_address(address):
+    
+    # Resolve destination: either address or @mention
+    to_address = None
+    
+    # Check if it's a mention and mentions are enabled
+    if ALLOW_MENTIONS and destination.startswith('<@') and destination.endswith('>'):
+        # Extract user ID from mention (handles <@USERID> and <@!USERID>)
+        user_id = destination[2:-1].lstrip('!')
+        try:
+            # Get the mentioned user's address using HD wallet
+            target_wallet = HDWalletManager(user_id)
+            to_address = target_wallet.get_address()
+            logger.info(f'Resolved mention {destination} to address {to_address}')
+        except Exception as e:
+            logger.error(f'Failed to resolve mention {destination}: {e}')
+            msg = f"Couldn't generate address for that user. Make sure they've used /deposit first!"
+            await interaction.response.send_message(embed=embed_message('ERROR', msg, RED), ephemeral=True)
+            return
+    else:
+        # Treat as regular address
+        to_address = destination
+    
+    # Validate the resolved address
+    if not is_valid_address(to_address):
         msg = "That address doesn't look right — give it another look!"
         await interaction.response.send_message(embed=embed_message('ERROR', msg, RED), ephemeral=True)
         return
@@ -674,10 +708,11 @@ async def send_evr_slash(interaction: discord.Interaction, address: str, amount:
     wif = wallet.get_wif()
     
     try:
-        result = create_and_send_evr(from_address, address, amount, [wif])
+        result = create_and_send_evr(from_address, to_address, amount, [wif])
         txid = result['txid']
-        logger.info(f'{user.name}#{user.id} sent {amount} EVR to {address} TX: {txid}')
-        msg = f'{user.mention} just sent `{amount}` $EVR to `{address}`.\nTXID: `{txid}`'
+        logger.info(f'{user.name}#{user.id} sent {amount} EVR to {to_address} TX: {txid}')
+        recipient_display = destination if ALLOW_MENTIONS and destination.startswith('<@') else f'`{to_address}`'
+        msg = f'{user.mention} just sent `{amount}` $EVR to {recipient_display}.\nTXID: `{txid}`'
         await interaction.response.send_message(embed=embed_message('💸 SEND COMPLETE', msg, GREEN))
     except Exception as e:
         logger.error(f'Send error: {e}')
@@ -698,7 +733,7 @@ async def info_slash(interaction: discord.Interaction):
         **Commands:**
         `/deposit` - Get your deposit address
         `/backup` - Get your backup phrase (admin only)
-        `/send_evr` - Send EVR via raw transaction
+        `/send` - Send EVR via raw transaction (supports addresses and @mentions)
         `/menu` - Open control panel
         
         *USE ME AT YOUR OWN RISK*
