@@ -1,40 +1,27 @@
 ```
-# Python
+# Dependencies
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.py~
-*.py.class
-*.py.obj
-*.py.out
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment
+.Python
+env/
+venv/
+.venv/
 .env
 .env.local
-*.env.*
-.env~
+.env.*
+requirements.txt.bak
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Logs
 *.log
-
-# Dependencies
-.venv/
-venv/
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Testing
-.coverage
-coverage/
-htmlcov/
-.pytest_cache/
-.hypothesis/
 
 # OS generated files
 .DS_Store
@@ -44,9 +31,8 @@ htmlcov/
 .Trashes
 ehthumbs.db
 Thumbs.db
-Thumbs.db:encryptable
 
-# Editor
+# Editor files
 .vscode/
 .idea/
 *.swp

@@ -2,7 +2,6 @@
     "default-address": "YOUR_EVR_WALLET_ADDRESS",
     "prefix": "Evrmore Bot",
     "user": "evrmoreuser",
-    "password": "your-rpc-password",
     "host": "localhost",
     "port": 8820,
     "network": "testnet",
