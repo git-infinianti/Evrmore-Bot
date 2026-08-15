@@ -1,19 +1,21 @@
-```python
-# Compiled and build artifacts
+# Compiled and binary files
 *.pyc
 __pycache__/
 
 # Dependencies
 .venv/
 venv/
-.env
-.env.local
-*.env.*
+node_modules/
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
+
+# Environment
+.env
+.env.local
+*.env.*
 
 # Editors
 .vscode/
@@ -24,27 +26,25 @@ venv/
 coverage/
 htmlcov/
 
-# Distribution / packaging
+# Build artifacts
 dist/
 build/
-*.egg-info/
-*.whl
-*.egg
-
-# Python specific
-*.py[cod]
-*$py.class
+target/
+*.class
+*.o
+*.obj
+*.out
+*.dll
 *.so
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
+*.a
 
-# Testing
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-
-# OS generated files
+# System files
 .DS_Store
 Thumbs.db
-```
+
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.gradle/
+julia-*/
+zig*/

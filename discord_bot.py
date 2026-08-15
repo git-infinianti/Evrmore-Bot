@@ -503,6 +503,19 @@ def embed_message(name, value, color):
     """Create Discord embed"""
     return discord.Embed(title=name, description=value, color=color)
 
+def get_address_balance(address):
+    """Get total balance for an address using getaddressbalance"""
+    try:
+        result = rpc.getaddressbalance({'addresses': [address]})
+        if isinstance(result, dict) and 'balance' in result:
+            # Balance is in satoshis, convert to EVR
+            satoshis = result['balance']
+            return Decimal(str(satoshis)) / Decimal('100000000')
+        return Decimal('0')
+    except Exception as e:
+        logger.debug(f'Error getting balance for {address}: {e}')
+        return Decimal('0')
+
 def get_asset_balances(addresses):
     """Get asset balances for a list of addresses using getaddressutxos"""
     balances = {}
@@ -513,7 +526,13 @@ def get_asset_balances(addresses):
             for utxo in utxos:
                 asset_name = utxo.get('assetName')
                 if asset_name:
-                    amount = float(utxo.get('amount', 0))
+                    # Amount might be in satoshis or EVR depending on RPC response
+                    amount = utxo.get('amount', 0)
+                    # If amount is very large, it's likely in satoshis
+                    if isinstance(amount, (int, float)) and amount > 1000000:
+                        amount = Decimal(str(amount)) / Decimal('100000000')
+                    else:
+                        amount = Decimal(str(amount))
                     if asset_name in balances:
                         balances[asset_name] += amount
                     else:
@@ -559,17 +578,13 @@ async def menu_slash(interaction: discord.Interaction):
                 await interaction.response.send_message(embed=embed_message('⚠️ ERROR', msg, RED), ephemeral=True)
                 return
             
-            # Check balance via RPC
+            # Check balance via RPC using getaddressbalance
             try:
                 total_balance = Decimal('0')
                 for addr in addresses:
-                    utxos = get_address_utxos(addr)
-                    logger.debug(f'Found {len(utxos)} UTXOs for {addr}')
-                    for utxo in utxos:
-                        if not utxo.get('assetName'):
-                            amount = Decimal(str(utxo.get('amount', 0)))
-                            total_balance += amount
-                            logger.debug(f'Added {amount} EVR from UTXO {utxo.get("txid")}')
+                    balance = get_address_balance(addr)
+                    total_balance += balance
+                    logger.debug(f'Balance for {addr}: {balance} EVR')
                 msg = f'{user.mention}, your vault is sitting at **{total_balance} $EVR**. Not bad.'
                 await interaction.response.send_message(embed=embed_message('💰 BALANCE', msg, GREEN), ephemeral=True)
             except Exception as e:
