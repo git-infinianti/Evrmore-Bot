@@ -524,29 +524,52 @@ def get_address_balance(address):
         return Decimal('0')
 
 def get_asset_balances(addresses):
-    """Get asset balances for a list of addresses using getaddressutxos"""
+    """Get asset balances for a list of addresses using listassetbalancesbyaddress"""
     balances = {}
-    for address in addresses:
-        try:
-            # Get all UTXOs for the address including assets
-            utxos = get_address_utxos(address)
-            for utxo in utxos:
-                asset_name = utxo.get('assetName')
-                if asset_name:
-                    # Amount might be in satoshis or EVR depending on RPC response
-                    amount = utxo.get('amount', 0)
-                    # If amount is very large, it's likely in satoshis
-                    if isinstance(amount, (int, float)) and amount > 1000000:
-                        amount = Decimal(str(amount)) / Decimal('100000000')
-                    else:
-                        amount = Decimal(str(amount))
+    
+    try:
+        # Use listassetbalancesbyaddress RPC method directly
+        request_params = {'addresses': addresses} if len(addresses) > 1 else {'addresses': addresses[0]}
+        result = rpc.listassetbalancesbyaddress(request_params)
+        
+        if isinstance(result, list):
+            # Response is an array of asset balance objects
+            for item in result:
+                asset_name = item.get('name') or item.get('assetName')
+                amount = Decimal(str(item.get('amount', 0)))
+                if asset_name and amount > 0:
                     if asset_name in balances:
                         balances[asset_name] += amount
                     else:
                         balances[asset_name] = amount
-        except Exception as e:
-            logger.debug(f'Error getting asset balance for {address}: {e}')
-            continue
+        elif isinstance(result, dict):
+            # Single address response
+            asset_name = result.get('name') or result.get('assetName')
+            amount = Decimal(str(result.get('amount', 0)))
+            if asset_name and amount > 0:
+                balances[asset_name] = amount
+    except Exception as e:
+        logger.debug(f'Error getting asset balances via listassetbalancesbyaddress: {e}')
+        # Fallback to getaddressutxos method
+        for address in addresses:
+            try:
+                utxos = get_address_utxos(address)
+                for utxo in utxos:
+                    asset_name = utxo.get('assetName')
+                    if asset_name:
+                        amount = utxo.get('amount', 0)
+                        if isinstance(amount, (int, float)) and amount > 1000000:
+                            amount = Decimal(str(amount)) / Decimal('100000000')
+                        else:
+                            amount = Decimal(str(amount))
+                        if asset_name in balances:
+                            balances[asset_name] += amount
+                        else:
+                            balances[asset_name] = amount
+            except Exception as fallback_error:
+                logger.debug(f'Fallback error for {address}: {fallback_error}')
+                continue
+    
     return balances
 
 def is_valid_address(address):
