@@ -26,13 +26,13 @@ def test_rpc_connection(config, network_name="Test"):
     import requests
     from requests.auth import HTTPBasicAuth
     
-    host = config.get('host', 'localhost')
-    port = config.get('port', 8820)
+    host = config.get('host', 'https://testnet-rpc.evrmorecoin.org')
+    port = config.get('port', 443)
     username = os.getenv('RPC_USERNAME', 'evrmoreuser')
     password = os.getenv('PASSWORD', '')
     
     # Handle public RPC endpoints (HTTPS, port 443)
-    if 'evrmorecoin.org' in host:
+    if 'evrmorecoin.org' in host or host.startswith('https://'):
         # Public endpoints use HTTPS on port 443, don't append port
         url = host.rstrip('/')
         auth = None
@@ -90,8 +90,8 @@ def test_getaddressutxos(config):
     import requests
     from requests.auth import HTTPBasicAuth
     
-    host = config.get('host', 'localhost')
-    port = config.get('port', 8820)
+    host = config.get('host', 'https://testnet-rpc.evrmorecoin.org')
+    port = config.get('port', 443)
     username = os.getenv('RPC_USERNAME', 'evrmoreuser')
     password = os.getenv('PASSWORD', '')
     wallet_address = config.get('wallet_address', '')
@@ -100,8 +100,13 @@ def test_getaddressutxos(config):
         print("⚠️  Skipping getaddressutxos test - no wallet address configured")
         return True
     
-    url = f"http://{host}:{port}" if 'evrmorecoin.org' not in host else f"{host}:{port}"
-    auth = HTTPBasicAuth(username, password) if 'evrmorecoin.org' not in host else None
+    # Handle public RPC endpoints
+    if 'evrmorecoin.org' in host or host.startswith('https://'):
+        url = host.rstrip('/')
+        auth = None
+    else:
+        url = f"http://{host}:{port}"
+        auth = HTTPBasicAuth(username, password)
     
     payload = {
         "jsonrpc": "1.0",
@@ -196,13 +201,14 @@ def main():
         sys.exit(1)
     
     network = config.get('network', 'testnet')
-    host = config.get('host', 'localhost')
-    port = config.get('port', 8820 if network == 'testnet' else 8819)
+    host = config.get('host', 'https://testnet-rpc.evrmorecoin.org')
+    port = config.get('port', 443 if network == 'testnet' else 443)
     
     print(f"📋 Configuration:")
     print(f"   Network: {network}")
     print(f"   Host: {host}")
     print(f"   Port: {port}")
+    print(f"   RPC Mode: {'Public Endpoint (No local node required)' if 'evrmorecoin.org' in host or host.startswith('https://') else 'Private RPC (Local node)'}")
     print(f"   Wallet: {config.get('wallet_address', 'Not configured')[:20]}...")
     print()
     
