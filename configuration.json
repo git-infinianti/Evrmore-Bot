@@ -1,7 +1,6 @@
 {
     "default-address": "YOUR_EVR_WALLET_ADDRESS",
     "prefix": "Evrmore Bot",
-    "user": "evrmoreuser",
     "host": "localhost",
     "port": 8820,
     "network": "testnet",
@@ -10,16 +9,11 @@
     "format": "%(asctime)-15s - %(message)s",
     "permissions-integer": 4503599627503680,
     "bot-uuids": [
-        123456789012345678,
-        123456789012345679,
-        123456789012345680
+        954259451811102740
     ],
     "allowed-channel-ids": [
-        123456789012345678,
-        123456789012345679,
-        123456789012345680
+        1538033236016365599
     ],
-    "admin-id": 123456789012345678,
-    "evr-id": 123456789012345678,
-    "unoff-id": 123456789012345679
+    "admin-id": 250152441893486592,
+    "evr-id": 954259451811102740
 }
