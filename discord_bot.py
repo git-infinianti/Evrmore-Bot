@@ -181,7 +181,7 @@ class HDWalletManager:
             cryptocurrency=cryptocurrencies.Evrmore,
             passphrase=self.passphrase,
             network='mainnet'
-        ).from_mnemonic(str(mnemonic))
+        ).from_mnemonic(mnemonic)
     
     def _derive_address(self, account=0, index=0, is_change=False):
         """Derive address at specified path"""
