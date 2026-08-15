@@ -1,10 +1,9 @@
 {
     "default-address": "YOUR_EVR_WALLET_ADDRESS",
     "prefix": "Evrmore Bot",
-    "user": "auravox",
     "host": "localhost",
     "port": 8820,
-    "network": "mainnet",
+    "network": "testnet",
     "log": "evr.log",
     "tx-fee": 0.01,
     "format": "%(asctime)-15s - %(message)s",
@@ -16,6 +15,5 @@
         1538033236016365599
     ],
     "admin-id": 250152441893486592,
-    "evr-id": 954259451811102740,
-    "unoff-id": 405651007989743616
+    "evr-id": 954259451811102740
 }
