@@ -1,0 +1,6 @@
+.env
+configuration.json
+evr.log
+wallet.db
+.venv
+__pycache__/
