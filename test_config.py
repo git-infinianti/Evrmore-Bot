@@ -158,8 +158,8 @@ try:
         print("✗ Testnet and mainnet addresses are identical (error)")
     
     # Get mnemonic
-    mnemonic = BIP39Mnemonic.from_entropy(entropy_obj, language='english')
-    print(f"✓ Mnemonic generated: {mnemonic}")
+    mnemonic_str = BIP39Mnemonic.from_entropy(entropy_obj, language='english')
+    print(f"✓ Mnemonic generated: {mnemonic_str}")
     
 except Exception as e:
     print(f"✗ HD Wallet test failed: {e}")

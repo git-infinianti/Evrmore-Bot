@@ -78,14 +78,15 @@ try:
     entropy_obj = BIP39Entropy(entropy_bytes)
     
     # Create mnemonic
-    mnemonic = BIP39Mnemonic.from_entropy(entropy_obj, language='english')
-    print(f"  Generated mnemonic: {mnemonic}")
+    mnemonic_str = BIP39Mnemonic.from_entropy(entropy_obj, language='english')
+    print(f"  Generated mnemonic: {mnemonic_str}")
     
-    # Create HD wallet from entropy bytes
+    # Create HD wallet from mnemonic object (required for hdwallet 3.x)
+    mnemonic_obj = BIP39Mnemonic(mnemonic_str)
     hd_wallet = HDWallet(
         cryptocurrency=cryptocurrencies.Evrmore,
         network='mainnet'
-    ).from_entropy(entropy_obj)
+    ).from_mnemonic(mnemonic_obj)
     
     # Derive first address (m/44'/0'/0'/0/0)
     derivation = BIP44Derivation(

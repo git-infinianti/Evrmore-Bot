@@ -32,8 +32,6 @@ PASSWORD = os.environ['PASSWORD']
 with open('configuration.json') as file:
     data = load(file)
 
-RPC_USER = data['user']
-RPC_PORT = data['port']
 ALLOWED_CHANNEL_IDS = data.get('allowed-channel-ids', [])
 # Make channel locks optional - only enforce if list is non-empty
 CHANNEL_LOCK_ENABLED = len(ALLOWED_CHANNEL_IDS) > 0
@@ -47,6 +45,7 @@ EVRID = data['evr-id']
 UNOFFID = data['unoff-id']
 LOG_FILE = data['log']
 PERMISSIONS = data['permissions-integer']
+NETWORK = data.get('network', 'mainnet').lower()
 TXFEE = Decimal('0.01')
 HOUSE = 'House'
 RED = discord.Color.red()
@@ -107,38 +106,49 @@ def init_wallet_db():
 init_wallet_db()
 
 # ============================================================================
-# RPC CLIENT
+# RPC CLIENT (Public Endpoints Only - DeFi-Tome Pattern)
 # ============================================================================
 
-class RPCClient:
-    def __init__(self, username, password, port):
-        self.username = username
-        self.password = password
-        self.port = port
+class PublicRpcClient:
+    """Minimal JSON-RPC client for HTTPS public endpoints."""
     
-    def _call(self, method, parameters):
-        response = post(
-            f'http://localhost:{self.port}',
-            json={
+    def __init__(self, url, timeout=10):
+        self.url = str(url).rstrip('/')
+        self.timeout = timeout
+    
+    def __getattr__(self, method_name):
+        def _call(*args, **kwargs):
+            params = list(args)
+            if kwargs:
+                params.append(kwargs)
+            
+            payload = {
                 'jsonrpc': '1.0',
-                'id': 'python',
-                'method': method,
-                'params': list(parameters)
-            },
-            auth=(self.username, self.password),
-            headers={'content-type': 'application/json'}
-        )
-        result = response.json()
-        if 'error' in result and result['error']:
-            raise Exception(f"RPC Error: {result['error']}")
-        return result.get('result')
-    
-    def __getattr__(self, method):
-        def command(*args):
-            return self._call(method, list(args))
-        return command
+                'id': 'evrmorebot-public-rpc',
+                'method': method_name,
+                'params': params,
+            }
+            
+            response = post(
+                self.url,
+                json=payload,
+                timeout=self.timeout,
+            )
+            body = response.json()
+            if body.get('error'):
+                raise Exception(str(body['error']))
+            response.raise_for_status()
+            return body.get('result')
+        
+        return _call
 
-rpc = RPCClient(RPC_USER, PASSWORD, RPC_PORT)
+# Use public RPC endpoint with network-aware URL
+DEFAULT_RPC_URLS = {
+    'mainnet': 'https://evr-rpc-mainnet.evrmorecoin.org/rpc',
+    'testnet': 'https://evr-rpc-testnet.evrmorecoin.org/rpc'
+}
+RPC_URL = data.get('rpc_url', DEFAULT_RPC_URLS.get(NETWORK, DEFAULT_RPC_URLS['mainnet']))
+rpc = PublicRpcClient(url=RPC_URL, timeout=30)
 
 # ============================================================================
 # HD WALLET MANAGEMENT
@@ -178,12 +188,13 @@ class HDWalletManager:
     
     def _get_hd_wallet(self):
         """Create HDWallet instance from stored entropy"""
-        mnemonic = BIP39Mnemonic.from_entropy(BIP39Entropy(self.entropy), language='english')
+        mnemonic_str = BIP39Mnemonic.from_entropy(BIP39Entropy(self.entropy), language='english')
+        mnemonic_obj = BIP39Mnemonic(mnemonic_str)
         return HDWallet(
             cryptocurrency=cryptocurrencies.Evrmore,
             passphrase=self.passphrase,
-            network='mainnet'
-        ).from_mnemonic(mnemonic)
+            network=NETWORK
+        ).from_mnemonic(mnemonic_obj)
     
     def _derive_address(self, account=0, index=0, is_change=False):
         """Derive address at specified path"""
@@ -270,7 +281,8 @@ class HDWalletManager:
     
     def get_backup_phrase(self):
         """Return mnemonic phrase for backup"""
-        return BIP39Mnemonic.from_entropy(BIP39Entropy(self.entropy))
+        mnemonic_str = BIP39Mnemonic.from_entropy(BIP39Entropy(self.entropy))
+        return mnemonic_str
 
 # ============================================================================
 # RAW TRANSACTION HELPERS (DeFi-Tome Patterns)
