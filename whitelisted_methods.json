@@ -1,0 +1,61 @@
+{
+    "addressindex": [
+        "getaddressbalance",
+        "getaddressdeltas",
+        "getaddressmempool",
+        "getaddresstxids",
+        "getaddressutxos"
+    ],
+    "assetindex": [
+        "getassetdata",
+        "getburnaddresses",
+        "listaddressesbyasset",
+        "listassetbalancesbyaddress",
+        "listassets"
+    ],
+    "blockchain": [
+        "decodeblock",
+        "getbestblockhash",
+        "getblock",
+        "getblockchaininfo",
+        "getblockcount",
+        "getblockhash",
+        "getblockheader",
+        "getchaintips",
+        "getchaintxstats",
+        "getdifficulty",
+        "getmempoolancestors",
+        "getmempooldescendants",
+        "getmempoolentry",
+        "getmempoolinfo",
+        "getrawmempool",
+        "getspentinfo",
+        "gettxout",
+        "gettxoutproof"
+    ],
+    "control": [
+        "help",
+        "getnetworkhashps"
+    ],
+    "rawtransactions": [
+        "combinerawtransaction",
+        "createrawtransaction",
+        "decoderawtransaction",
+        "decodescript",
+        "getrawtransaction",
+        "signrawtransaction",
+        "testmempoolaccept"
+    ],
+    "restrictedassets": [
+        "checkaddressrestriction",
+        "checkaddresstag",
+        "checkglobalrestriction",
+        "getverifierstring",
+        "isvalidverifierstring",
+        "listaddressesfortag",
+        "listaddressrestrictions",
+        "listglobalrestrictions",
+        "listtagsforaddress"
+    ]
+    
+}

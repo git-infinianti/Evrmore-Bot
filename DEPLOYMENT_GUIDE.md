@@ -95,7 +95,7 @@ conn.close()
 - `/menu` - Interactive control panel
 - `/deposit` - Generate deposit address
 - `/backup` - Get mnemonic phrase (admin only)
-- `/send_evr` - Send EVR using raw transactions
+- `/send` - Send EVR using raw transactions (address or @mention)
 - `/transfer_asset` - Transfer assets
 - `/mint_nft` - Mint NFTs via modal
 

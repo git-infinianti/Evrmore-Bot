@@ -1,11 +1,9 @@
 {
-    "default-address": "YOUR_EVR_WALLET_ADDRESS",
     "prefix": "Evrmore Bot",
-    "host": "localhost",
-    "port": 8820,
+    "rpcurl": "https://evr-rpc-testnet.evrmorecoin.org/rpc",
     "network": "testnet",
     "log": "evr.log",
-    "tx-fee": 0.01,
+    "tx-fee-per-kb": 0.01025,
     "format": "%(asctime)-15s - %(message)s",
     "permissions-integer": 4503599627503680,
     "bot-uuids": [
@@ -13,8 +11,5 @@
     ],
     "allowed-channel-ids": [
         1538033236016365599
-    ],
-    "admin-id": 250152441893486592,
-    "evr-id": 954259451811102740,
-    "unoff-id": 405651007989743616
+    ]
 }
